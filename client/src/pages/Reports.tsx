@@ -72,7 +72,7 @@ const Reports = () => {
               <label className="block text-sm font-medium mb-1">Class</label>
               <Select 
                 onValueChange={(value) => setSelectedClassId(value ? parseInt(value) : undefined)}
-                defaultValue={selectedClassId?.toString() || ""}
+                defaultValue={selectedClassId?.toString() || undefined}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select class" />

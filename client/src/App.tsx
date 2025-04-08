@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import Dashboard from "@/pages/Dashboard";
 import Classes from "@/pages/Classes";
 import Students from "@/pages/Students";
@@ -8,12 +8,21 @@ import NotFound from "@/pages/not-found";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import NavigationTabs from "@/components/layout/NavigationTabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth, AuthProvider } from "@/lib/auth-context";
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { isAuthenticated, logout } = useAuth();
+  const [location] = useLocation();
+  
+  // Update activeTab based on location
+  useEffect(() => {
+    if (location === "/") setActiveTab("dashboard");
+    else if (location === "/classes") setActiveTab("classes");
+    else if (location === "/students") setActiveTab("students");
+    else if (location === "/reports") setActiveTab("reports");
+  }, [location]);
   
   // For demonstration purposes, just render the main app or login screen
   if (!isAuthenticated) {
@@ -34,22 +43,10 @@ function AppContent() {
         <NavigationTabs activeTab={activeTab} setActiveTab={setActiveTab} />
         
         <Switch>
-          <Route path="/" component={() => {
-            setActiveTab("dashboard");
-            return <Dashboard />;
-          }} />
-          <Route path="/classes" component={() => {
-            setActiveTab("classes");
-            return <Classes />;
-          }} />
-          <Route path="/students" component={() => {
-            setActiveTab("students");
-            return <Students />;
-          }} />
-          <Route path="/reports" component={() => {
-            setActiveTab("reports");
-            return <Reports />;
-          }} />
+          <Route path="/" component={Dashboard} />
+          <Route path="/classes" component={Classes} />
+          <Route path="/students" component={Students} />
+          <Route path="/reports" component={Reports} />
           <Route path="/login" component={Login} />
           <Route component={NotFound} />
         </Switch>

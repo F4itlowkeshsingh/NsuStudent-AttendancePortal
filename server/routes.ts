@@ -189,22 +189,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       workbook.creator = "Netaji Subhash University";
       workbook.created = new Date();
       
-      const worksheet = workbook.addWorksheet(`${classData.name} Attendance`);
+      // Limit worksheet name to 31 characters (Excel limitation)
+      const worksheetName = `${classData.name} Attendance`.substring(0, 31);
+      const worksheet = workbook.addWorksheet(worksheetName);
       
-      // Add headers
-      worksheet.columns = [
+      // Define all columns at once to avoid the equivalentTo issue
+      const columns = [
         { header: 'Roll No', key: 'rollNo', width: 15 },
         { header: 'Student Name', key: 'name', width: 30 },
         { header: 'Registration No', key: 'registrationNo', width: 20 }
       ];
       
-      // Get unique dates from attendance records
-      const dates = [...new Set(attendanceRecords.map(record => record.date))].sort();
+      // Get unique dates from attendance records using a Map for uniqueness
+      const uniqueDates: Record<string, boolean> = {};
+      attendanceRecords.forEach(record => {
+        uniqueDates[record.date] = true;
+      });
+      const dates = Object.keys(uniqueDates).sort();
       
       // Add date columns
       dates.forEach(date => {
         const formattedDate = format(new Date(date), 'dd/MM/yyyy');
-        worksheet.columns.push({ 
+        columns.push({ 
           header: formattedDate, 
           key: `attendance_${date}`, 
           width: 12 
@@ -212,10 +218,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Add total present and percentage columns
-      worksheet.columns.push(
+      columns.push(
         { header: 'Total Present', key: 'totalPresent', width: 15 },
         { header: 'Percentage', key: 'percentage', width: 15 }
       );
+      
+      // Set all columns at once
+      worksheet.columns = columns;
       
       // Add student data
       students.forEach(student => {

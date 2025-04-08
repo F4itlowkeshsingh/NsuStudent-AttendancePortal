@@ -28,10 +28,12 @@ const Students = () => {
   const { data: students, isLoading: loadingStudents } = useQuery<Student[]>({
     queryKey: ['/api/students', selectedClassId],
     queryFn: () => {
-      const url = selectedClassId 
-        ? `/api/students?classId=${selectedClassId}`
-        : '/api/students';
-      return fetch(url).then(r => r.json());
+      // If selectedClassId is NaN or undefined, fetch all students
+      if (isNaN(Number(selectedClassId)) || selectedClassId === undefined) {
+        return fetch('/api/students').then(r => r.json());
+      } else {
+        return fetch(`/api/students?classId=${selectedClassId}`).then(r => r.json());
+      }
     },
   });
 
@@ -69,13 +71,13 @@ const Students = () => {
           <div className="w-64">
             <Select 
               onValueChange={(value) => setSelectedClassId(value ? parseInt(value) : undefined)}
-              defaultValue={selectedClassId?.toString() || ""}
+              defaultValue={selectedClassId?.toString() || "all"}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Filter by class" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Classes</SelectItem>
+                <SelectItem value="all">All Classes</SelectItem>
                 {!loadingClasses && classes?.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id.toString()}>
                     {cls.name}
