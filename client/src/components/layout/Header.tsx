@@ -1,5 +1,6 @@
 import { User, Bell, LogOut } from 'lucide-react';
 import nsuLogo from '@/assets/nsu-logo.svg';
+import ManualAttendanceButton from '@/components/attendance/ManualAttendanceButton';
 
 interface HeaderProps {
   onLogout?: () => void;
@@ -28,6 +29,8 @@ const Header = ({ onLogout }: HeaderProps) => {
         </div>
         
         <div className="flex items-center space-x-4">
+          <ManualAttendanceButton />
+          
           <div className="hidden md:flex items-center space-x-1 bg-blue-700 px-3 py-1.5 rounded-full">
             <User className="h-4 w-4" />
             <span>Admin User</span>

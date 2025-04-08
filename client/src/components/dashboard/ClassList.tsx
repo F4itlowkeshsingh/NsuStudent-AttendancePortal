@@ -5,6 +5,7 @@ import { useState } from 'react';
 import TakeAttendanceModal from '@/components/modals/TakeAttendanceModal';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 const ClassList = () => {
   const { data: classes, isLoading } = useQuery<ClassWithStudentCount[]>({
@@ -14,6 +15,7 @@ const ClassList = () => {
   const [selectedClass, setSelectedClass] = useState<ClassWithStudentCount | null>(null);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   const handleTakeAttendance = (cls: ClassWithStudentCount) => {
     setSelectedClass(cls);
@@ -21,28 +23,16 @@ const ClassList = () => {
   };
   
   const handleViewStudents = (cls: ClassWithStudentCount) => {
-    window.location.href = `/classes?id=${cls.id}`;
+    navigate(`/classes?id=${cls.id}`);
   };
   
   const handleExportData = async (cls: ClassWithStudentCount) => {
-    // Export data as Excel
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    // Format dates as YYYY-MM-DD
-    const endDate = today.toISOString().split('T')[0];
-    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    // Generate export URL
-    const exportUrl = `/api/export/attendance?classId=${cls.id}&startDate=${startDate}&endDate=${endDate}`;
-    
-    // Download the file
-    window.open(exportUrl, '_blank');
+    // Navigate to reports page with class ID as a parameter
+    navigate(`/reports?classId=${cls.id}`);
     
     toast({
-      title: "Export started",
-      description: `Exporting attendance data for ${cls.name}`,
+      title: "Reports Page",
+      description: `View and export attendance data for ${cls.name}`,
     });
   };
   
@@ -51,7 +41,7 @@ const ClassList = () => {
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 mb-6">
         <div className="border-b border-neutral-200 px-6 py-4 flex justify-between items-center">
           <h3 className="font-semibold text-lg">Recent Classes</h3>
-          <Button variant="link" className="text-primary" onClick={() => window.location.href = '/classes'}>
+          <Button variant="link" className="text-primary" onClick={() => navigate('/classes')}>
             View All
           </Button>
         </div>

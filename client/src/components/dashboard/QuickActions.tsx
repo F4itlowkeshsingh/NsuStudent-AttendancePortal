@@ -6,11 +6,13 @@ import TakeAttendanceModal from '@/components/modals/TakeAttendanceModal';
 import { useQuery } from '@tanstack/react-query';
 import { ClassWithStudentCount } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 const QuickActions = () => {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [isTakeAttendanceOpen, setIsTakeAttendanceOpen] = useState(false);
+  const [, navigate] = useLocation();
   
   const { data: classes } = useQuery<ClassWithStudentCount[]>({
     queryKey: ['/api/classes'],
@@ -28,28 +30,26 @@ const QuickActions = () => {
       return;
     }
     
-    // Get the first class to export
-    const firstClass = classes[0];
-    
-    // Export data as Excel
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    // Format dates as YYYY-MM-DD
-    const endDate = today.toISOString().split('T')[0];
-    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    // Generate export URL
-    const exportUrl = `/api/export/attendance?classId=${firstClass.id}&startDate=${startDate}&endDate=${endDate}`;
-    
-    // Download the file
-    window.open(exportUrl, '_blank');
+    // Navigate to reports page
+    navigate("/reports");
     
     toast({
-      title: "Export started",
-      description: `Exporting attendance data for ${firstClass.name}`,
+      title: "Reports Page",
+      description: "You can now select a class and generate reports",
     });
+  };
+  
+  const handleTakeAttendance = () => {
+    if (!classes || classes.length === 0) {
+      toast({
+        title: "No classes available",
+        description: "Please create a class first to take attendance",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsTakeAttendanceOpen(true);
   };
   
   const actions = [
@@ -66,11 +66,11 @@ const QuickActions = () => {
     {
       icon: <CalendarCheck className="text-xl" />,
       label: "Take Attendance",
-      onClick: () => setIsTakeAttendanceOpen(true)
+      onClick: handleTakeAttendance
     },
     {
       icon: <FileSpreadsheet className="text-xl" />,
-      label: "Export Report",
+      label: "Generate Report",
       onClick: handleExportReport
     }
   ];

@@ -14,7 +14,7 @@ import { useAuth, AuthProvider } from "@/lib/auth-context";
 function AppContent() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { isAuthenticated, logout } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   
   // Update activeTab based on location
   useEffect(() => {
@@ -36,18 +36,40 @@ function AppContent() {
     );
   }
   
+  // Handle tab navigation - use proper routing instead of direct URL manipulation
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    
+    switch (tab) {
+      case "dashboard":
+        navigate("/");
+        break;
+      case "classes":
+        navigate("/classes");
+        break;
+      case "students":
+        navigate("/students");
+        break;
+      case "reports":
+        navigate("/reports");
+        break;
+    }
+  };
+  
   return (
     <div className="min-h-screen flex flex-col bg-neutral-100 text-neutral-800">
       <Header onLogout={logout} />
       <main className="flex-1 container mx-auto px-4 py-6">
-        <NavigationTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <NavigationTabs activeTab={activeTab} setActiveTab={handleTabChange} />
         
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/classes" component={Classes} />
           <Route path="/students" component={Students} />
           <Route path="/reports" component={Reports} />
-          <Route path="/login" component={Login} />
+          <Route path="/login">
+            <Redirect to="/" />
+          </Route>
           <Route component={NotFound} />
         </Switch>
       </main>

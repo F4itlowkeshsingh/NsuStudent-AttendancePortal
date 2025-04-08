@@ -31,10 +31,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // In a real app, we would check session/token validity
       const authenticated = localStorage.getItem("isAuthenticated") === "true";
       setIsAuthenticated(authenticated);
+      
+      // Redirect to login if not authenticated, otherwise to dashboard
+      if (!authenticated && window.location.pathname !== '/login') {
+        navigate('/login');
+      } else if (authenticated && window.location.pathname === '/login') {
+        navigate('/');
+      }
     };
     
     checkAuth();
-  }, []);
+  }, [navigate]);
 
   const login = () => {
     localStorage.setItem("isAuthenticated", "true");

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ClassWithStudentCount, AttendanceSummary } from '@shared/schema';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,27 @@ import { CalendarIcon, FileSpreadsheet, Download } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import AttendanceChart from '@/components/dashboard/AttendanceChart';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 const Reports = () => {
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
+  const [location] = useLocation();
+  
+  // Check for classId in URL parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const classIdParam = params.get('classId');
+    
+    if (classIdParam) {
+      const classId = parseInt(classIdParam);
+      if (!isNaN(classId)) {
+        setSelectedClassId(classId);
+      }
+    }
+  }, [location]);
 
   const { data: classes, isLoading: loadingClasses } = useQuery<ClassWithStudentCount[]>({
     queryKey: ['/api/classes'],
