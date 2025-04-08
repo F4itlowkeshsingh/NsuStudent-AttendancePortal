@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -8,6 +8,7 @@ import {
 } from "@shared/schema";
 import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { sendAttendanceNotification, sendAttendanceSummary } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get dashboard stats
@@ -194,10 +195,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/attendance", async (req: Request, res: Response) => {
     try {
-      const { classId, date, subject, timeSlot, attendanceData } = req.body;
+      const { classId, date, subject, timeSlot, attendanceData, sendEmails = true } = req.body;
       
       if (!classId || !date || !attendanceData || !Array.isArray(attendanceData)) {
         return res.status(400).json({ message: "Invalid attendance data format" });
+      }
+      
+      // Get class details for email
+      const classData = await storage.getClass(classId);
+      if (!classData) {
+        return res.status(404).json({ message: "Class not found" });
       }
       
       const attendanceRecords = attendanceData.map(item => ({
@@ -214,7 +221,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         insertAttendanceSchema.parse(record);
       });
       
+      // Save attendance records
       await storage.saveAttendance(attendanceRecords);
+      
+      // Send email notifications if requested
+      if (sendEmails) {
+        // Process email notifications in the background
+        (async () => {
+          // Get all students for this attendance set
+          const studentIds = attendanceData.map(item => item.studentId);
+          const students = await Promise.all(
+            studentIds.map(id => storage.getStudent(id))
+          );
+          
+          // Filter out any undefined students
+          const validStudents = students.filter(s => s) as any[];
+          
+          // Create a map of student ID to attendance status
+          const attendanceMap = new Map();
+          attendanceData.forEach(item => {
+            attendanceMap.set(item.studentId, item.isPresent);
+          });
+          
+          // Send individual notifications to students with email addresses
+          const emailPromises = validStudents
+            .filter(student => student.email)
+            .map(student => {
+              const isPresent = attendanceMap.get(student.id);
+              return sendAttendanceNotification(
+                student,
+                classData.name,
+                date,
+                isPresent
+              );
+            });
+          
+          // Send summary to faculty email (assuming there's a faculty email in request or using a default)
+          const facultyEmail = req.body.facultyEmail || "faculty@netajisubhashuniversity.edu.in";
+          const presentCount = attendanceData.filter(item => item.isPresent).length;
+          const totalCount = attendanceData.length;
+          
+          emailPromises.push(
+            sendAttendanceSummary(
+              facultyEmail,
+              classData.name,
+              date,
+              presentCount,
+              totalCount
+            )
+          );
+          
+          // Wait for all emails to be sent
+          await Promise.all(emailPromises);
+          console.log(`Sent ${emailPromises.length} attendance email notifications`);
+        })().catch(err => {
+          console.error("Error sending attendance email notifications:", err);
+        });
+      }
+      
       res.status(201).json({ message: "Attendance saved successfully" });
     } catch (error) {
       console.error("Error saving attendance:", error);

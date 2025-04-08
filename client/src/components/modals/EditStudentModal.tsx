@@ -219,7 +219,14 @@ export function EditStudentModal({ isOpen, onClose, student, classOptions }: Edi
                 <FormItem>
                   <FormLabel>Registration Number (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. NSU2023001" {...field} />
+                    <Input 
+                      placeholder="e.g. NSU2023001" 
+                      value={field.value || ''} 
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      name={field.name}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -236,7 +243,11 @@ export function EditStudentModal({ isOpen, onClose, student, classOptions }: Edi
                     <Input
                       type="email"
                       placeholder="student@example.com"
-                      {...field}
+                      value={field.value || ''} 
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      name={field.name}
                     />
                   </FormControl>
                   <FormMessage />
@@ -251,7 +262,14 @@ export function EditStudentModal({ isOpen, onClose, student, classOptions }: Edi
                 <FormItem>
                   <FormLabel>Phone Number (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="+91 9876543210" {...field} />
+                    <Input 
+                      placeholder="+91 9876543210" 
+                      value={field.value || ''} 
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      name={field.name}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

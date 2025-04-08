@@ -33,6 +33,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
   const [date, setDate] = useState(today);
   const [timeSlot, setTimeSlot] = useState("Morning (9:00 AM - 12:00 PM)");
   const [subject, setSubject] = useState("Data Structures");
+  const [sendEmails, setSendEmails] = useState(true);
   
   const { data: studentsWithAttendance, isLoading } = useQuery<StudentWithAttendance[]>({
     queryKey: ['/api/attendance', classData.id, date],
@@ -120,7 +121,8 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
       date,
       subject,
       timeSlot,
-      attendanceData
+      attendanceData,
+      sendEmails
     });
   };
   
@@ -298,6 +300,23 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
           )}
         </div>
         
+        <div className="border-t border-neutral-200 pt-3 px-4 flex items-center gap-3">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              checked={sendEmails} 
+              onCheckedChange={setSendEmails}
+              id="email-notification"
+            />
+            <Label htmlFor="email-notification" className="text-sm cursor-pointer flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              Send email notifications to students
+            </Label>
+          </div>
+        </div>
+
         <DialogFooter className="px-4 py-3 border-t border-neutral-200 gap-2">
           <div className="flex items-center mr-auto">
             <div className="text-sm text-neutral-500">

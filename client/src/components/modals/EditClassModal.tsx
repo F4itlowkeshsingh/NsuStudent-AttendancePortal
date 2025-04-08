@@ -177,7 +177,14 @@ export function EditClassModal({ isOpen, onClose, classData }: EditClassModalPro
                 <FormItem>
                   <FormLabel>Subject (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Database Management" {...field} />
+                    <Input 
+                      placeholder="e.g. Database Management" 
+                      value={field.value || ''} 
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      name={field.name}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
