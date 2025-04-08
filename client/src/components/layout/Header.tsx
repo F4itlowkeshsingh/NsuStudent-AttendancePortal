@@ -1,5 +1,5 @@
 import { User, Bell, LogOut } from 'lucide-react';
-import nsuLogo from '@/assets/nsu-logo.svg';
+import nsuLogo from '@/assets/nsu-logo.png';
 import ManualAttendanceButton from '@/components/attendance/ManualAttendanceButton';
 import { Separator } from '@/components/ui/separator';
 
@@ -21,7 +21,7 @@ const Header = ({ onLogout }: HeaderProps) => {
           <img 
             src={nsuLogo} 
             alt="Netaji Subhash University Logo" 
-            className="h-12 w-12"
+            className="h-14 w-auto"
           />
           <div>
             <h1 className="text-xl font-semibold">Netaji Subhash University</h1>
