@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,10 @@ import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { CheckCircle, CircleX, CalendarClock, Book, Clock3, Users, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { calculateAttendancePercentage } from "@/lib/utils";
 
 interface TakeAttendanceModalProps {
   isOpen: boolean;
@@ -54,6 +58,28 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
   const presentCount = Object.values(attendanceState).filter(Boolean).length;
   const totalCount = Object.keys(attendanceState).length;
   const absentCount = totalCount - presentCount;
+  const attendancePercentage = calculateAttendancePercentage(presentCount, totalCount);
+  
+  // Mark all present/absent
+  const markAllPresent = () => {
+    if (!studentsWithAttendance) return;
+    
+    const newState: Record<number, boolean> = {};
+    studentsWithAttendance.forEach(student => {
+      newState[student.id] = true;
+    });
+    setAttendanceState(newState);
+  };
+  
+  const markAllAbsent = () => {
+    if (!studentsWithAttendance) return;
+    
+    const newState: Record<number, boolean> = {};
+    studentsWithAttendance.forEach(student => {
+      newState[student.id] = false;
+    });
+    setAttendanceState(newState);
+  };
   
   // Save attendance mutation
   const saveAttendanceMutation = useMutation({
@@ -66,8 +92,9 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
       toast({
-        title: "Success",
-        description: "Attendance saved successfully",
+        title: "Attendance Saved",
+        description: `Successfully recorded attendance for ${presentCount} students`,
+        variant: "default"
       });
       onClose();
     },
@@ -108,23 +135,36 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Take Attendance: {classData.name}</DialogTitle>
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Take Attendance
+          </DialogTitle>
+          <DialogDescription>
+            Record attendance for {classData.name}
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="p-4 border-b border-neutral-200 bg-neutral-50">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1">
-              <Label>Date</Label>
+        <div className="p-4 border-b border-neutral-200 bg-gradient-to-b from-blue-50 to-white rounded-md mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="flex items-center mb-1.5 text-xs font-medium text-neutral-500">
+                <CalendarClock className="h-3.5 w-3.5 mr-1.5" />
+                Date
+              </Label>
               <Input 
                 type="date" 
                 value={date} 
-                onChange={(e) => setDate(e.target.value)} 
+                onChange={(e) => setDate(e.target.value)}
+                className="focus-visible:ring-blue-500"
               />
             </div>
-            <div className="flex-1">
-              <Label>Time Slot</Label>
+            <div>
+              <Label className="flex items-center mb-1.5 text-xs font-medium text-neutral-500">
+                <Clock3 className="h-3.5 w-3.5 mr-1.5" />
+                Time Slot
+              </Label>
               <Select value={timeSlot} onValueChange={setTimeSlot}>
-                <SelectTrigger>
+                <SelectTrigger className="focus-visible:ring-blue-500">
                   <SelectValue placeholder="Select time slot" />
                 </SelectTrigger>
                 <SelectContent>
@@ -134,10 +174,13 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1">
-              <Label>Subject</Label>
+            <div>
+              <Label className="flex items-center mb-1.5 text-xs font-medium text-neutral-500">
+                <Book className="h-3.5 w-3.5 mr-1.5" />
+                Subject
+              </Label>
               <Select value={subject} onValueChange={setSubject}>
-                <SelectTrigger>
+                <SelectTrigger className="focus-visible:ring-blue-500">
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -151,9 +194,54 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
           </div>
         </div>
         
-        <div className="overflow-y-auto max-h-[50vh]">
+        <Card className="mb-2 border-dashed">
+          <CardContent className="p-3 flex flex-wrap justify-between items-center">
+            <div className="flex items-center">
+              <Badge variant="outline" className="mr-2 bg-blue-50 border-blue-100 text-blue-700">
+                {totalCount} Students
+              </Badge>
+              
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="bg-green-50 border-green-100 text-green-700">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  {presentCount} Present
+                </Badge>
+                <Badge variant="outline" className="bg-red-50 border-red-100 text-red-700">
+                  <CircleX className="h-3 w-3 mr-1" />
+                  {absentCount} Absent
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 mt-2 md:mt-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={markAllPresent}
+                className="h-8 text-xs border-green-200 bg-green-50 hover:bg-green-100 text-green-700"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Mark All Present
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={markAllAbsent}
+                className="h-8 text-xs border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
+              >
+                <CircleX className="h-3 w-3 mr-1" />
+                Mark All Absent
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="overflow-y-auto max-h-[50vh] border rounded-md">
           {isLoading ? (
-            <div className="p-8 text-center text-neutral-500">Loading students...</div>
+            <div className="p-8 text-center text-neutral-500 flex flex-col items-center">
+              <Loader2 className="h-8 w-8 animate-spin mb-2 text-blue-500" />
+              <p>Loading students...</p>
+            </div>
           ) : studentsWithAttendance && studentsWithAttendance.length > 0 ? (
             <table className="w-full">
               <thead className="sticky top-0 bg-white">
@@ -165,9 +253,15 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
               </thead>
               <tbody>
                 {studentsWithAttendance.map((student) => (
-                  <tr key={student.id} className="border-t border-neutral-200 hover:bg-neutral-50">
+                  <tr 
+                    key={student.id} 
+                    className={`border-t border-neutral-200 hover:bg-neutral-50 ${
+                      attendanceState[student.id] ? 'bg-green-50' : 'bg-red-50'
+                    }`}
+                    onClick={() => toggleAttendance(student.id)}
+                  >
                     <td className="px-6 py-3 text-sm">{student.rollNo}</td>
-                    <td className="px-6 py-3">{student.name}</td>
+                    <td className="px-6 py-3 font-medium">{student.name}</td>
                     <td className="px-6 py-3">
                       <div className="flex justify-center items-center space-x-4">
                         <div className="flex items-center space-x-2">
@@ -175,13 +269,20 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
                             checked={attendanceState[student.id] || false}
                             onCheckedChange={() => toggleAttendance(student.id)}
                           />
-                          <span 
+                          <Badge 
+                            variant="outline"
                             className={`text-xs font-medium ${
-                              attendanceState[student.id] ? 'text-green-600' : 'text-neutral-400'
+                              attendanceState[student.id] 
+                              ? 'bg-green-50 border-green-200 text-green-700' 
+                              : 'bg-red-50 border-red-200 text-red-700'
                             }`}
                           >
-                            {attendanceState[student.id] ? 'Present' : 'Absent'}
-                          </span>
+                            {attendanceState[student.id] ? (
+                              <><CheckCircle className="h-3 w-3 mr-1" /> Present</>
+                            ) : (
+                              <><CircleX className="h-3 w-3 mr-1" /> Absent</>
+                            )}
+                          </Badge>
                         </div>
                       </div>
                     </td>
@@ -191,20 +292,48 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             </table>
           ) : (
             <div className="p-8 text-center text-neutral-500">
-              No students found in this class. Add students first.
+              <p className="mb-2 font-medium">No students found in this class</p>
+              <p className="text-sm">Please add students to the class before taking attendance</p>
             </div>
           )}
         </div>
         
-        <DialogFooter className="bg-neutral-50 px-4 py-3 border-t border-neutral-200">
-          <div className="mr-auto text-sm text-neutral-500">
-            <span className="font-medium">{totalCount}</span> students | <span className="font-medium text-success">{presentCount}</span> present | <span className="font-medium text-danger">{absentCount}</span> absent
+        <DialogFooter className="px-4 py-3 border-t border-neutral-200 gap-2">
+          <div className="flex items-center mr-auto">
+            <div className="text-sm text-neutral-500">
+              Attendance Rate: 
+              <span 
+                className={`ml-2 font-bold ${
+                  attendancePercentage > 75 
+                  ? 'text-green-600' 
+                  : attendancePercentage > 50 
+                  ? 'text-amber-600' 
+                  : 'text-red-600'
+                }`}
+              >
+                {attendancePercentage}%
+              </span>
+            </div>
           </div>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="gap-1">
             Cancel
           </Button>
-          <Button onClick={handleSaveAttendance} disabled={saveAttendanceMutation.isPending}>
-            {saveAttendanceMutation.isPending ? "Saving..." : "Save Attendance"}
+          <Button 
+            onClick={handleSaveAttendance} 
+            disabled={saveAttendanceMutation.isPending || totalCount === 0}
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
+          >
+            {saveAttendanceMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                Save Attendance
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
