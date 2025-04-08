@@ -99,10 +99,10 @@ const AttendanceChart: React.FC<AttendanceChartProps> = ({ classId }) => {
   if (!classId) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Alert variant="warning" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No class selected</AlertTitle>
-          <AlertDescription>
+        <Alert className="max-w-md bg-amber-50 border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-700">No class selected</AlertTitle>
+          <AlertDescription className="text-amber-600">
             Please select a class to view attendance data
           </AlertDescription>
         </Alert>
@@ -128,30 +128,40 @@ const AttendanceChart: React.FC<AttendanceChartProps> = ({ classId }) => {
   
   return (
     <div className="px-6 py-4">
-      <div className="h-64 flex items-center justify-center mb-4">
-        <div className="w-48 h-48 rounded-full border-8 border-neutral-100 relative">
-          <div className="w-full h-full rounded-full overflow-hidden">
+      <div className="flex items-center justify-center mb-8">
+        {/* Perfect circle container with fixed aspect ratio */}
+        <div className="relative aspect-square w-56 flex items-center justify-center">
+          {/* Outer border circle */}
+          <div className="absolute inset-0 rounded-full border-8 border-neutral-100"></div>
+          
+          {/* Colored portion (pie chart) */}
+          <div className="absolute inset-0 rounded-full overflow-hidden">
             <div className="absolute inset-0" style={{ clipPath }}>
               <div className={`w-full h-full ${chartColor} transition-all duration-300`}></div>
             </div>
           </div>
-          <div className="absolute inset-0 flex items-center justify-center flex-col">
-            <span className="text-3xl font-bold">{isLoading ? "-" : `${animatedPercentage}%`}</span>
-            <span className="text-sm text-neutral-500">Present</span>
+          
+          {/* Inner white circle for contrast */}
+          <div className="absolute inset-[15%] bg-white rounded-full shadow-inner"></div>
+          
+          {/* Text in the center */}
+          <div className="relative flex flex-col items-center justify-center">
+            <span className="text-4xl font-bold">{isLoading ? "-" : `${animatedPercentage}%`}</span>
+            <span className="text-sm text-neutral-500 mt-1">Present</span>
           </div>
         </div>
       </div>
       
       <div className="grid grid-cols-3 gap-4 text-center">
-        <div className="p-3 bg-neutral-50 rounded-md">
+        <div className="p-4 bg-neutral-50 rounded-md border border-neutral-100">
           <div className="text-lg font-semibold text-green-600">{isLoading ? "-" : present}</div>
           <div className="text-xs text-neutral-500">Present</div>
         </div>
-        <div className="p-3 bg-neutral-50 rounded-md">
+        <div className="p-4 bg-neutral-50 rounded-md border border-neutral-100">
           <div className="text-lg font-semibold text-red-500">{isLoading ? "-" : absent}</div>
           <div className="text-xs text-neutral-500">Absent</div>
         </div>
-        <div className="p-3 bg-neutral-50 rounded-md">
+        <div className="p-4 bg-neutral-50 rounded-md border border-neutral-100">
           <div className="text-lg font-semibold text-blue-500">{isLoading ? "-" : total}</div>
           <div className="text-xs text-neutral-500">Total</div>
         </div>
