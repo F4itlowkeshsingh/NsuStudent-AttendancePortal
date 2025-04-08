@@ -59,6 +59,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/classes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertClassSchema.partial().parse(req.body);
+      
+      const updatedClass = await storage.updateClass(id, validatedData);
+      if (!updatedClass) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      
+      res.json(updatedClass);
+    } catch (error) {
+      console.error("Error updating class:", error);
+      res.status(400).json({ message: "Failed to update class" });
+    }
+  });
+
+  app.delete("/api/classes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteClass(id);
+      
+      if (!result) {
+        return res.status(400).json({ 
+          message: "Cannot delete class with associated students or attendance records" 
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      res.status(500).json({ message: "Failed to delete class" });
+    }
+  });
+
   // Student routes
   app.get("/api/students", async (req: Request, res: Response) => {
     try {
@@ -93,6 +128,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating student:", error);
       res.status(400).json({ message: "Failed to create student" });
+    }
+  });
+
+  app.put("/api/students/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertStudentSchema.partial().parse(req.body);
+      
+      // If roll number is being changed, check if it already exists
+      if (validatedData.rollNo) {
+        const existingStudent = await storage.getStudentByRollNo(validatedData.rollNo);
+        if (existingStudent && existingStudent.id !== id) {
+          return res.status(400).json({ message: "Another student with this roll number already exists" });
+        }
+      }
+      
+      const updatedStudent = await storage.updateStudent(id, validatedData);
+      if (!updatedStudent) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      res.json(updatedStudent);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      res.status(400).json({ message: "Failed to update student" });
+    }
+  });
+
+  app.delete("/api/students/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteStudent(id);
+      
+      if (!result) {
+        return res.status(400).json({ 
+          message: "Cannot delete student with attendance records" 
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
     }
   });
 

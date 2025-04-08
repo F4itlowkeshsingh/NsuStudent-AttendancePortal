@@ -20,6 +20,8 @@ export interface IStorage {
   getClasses(): Promise<ClassWithStudentCount[]>;
   getClass(id: number): Promise<Class | undefined>;
   createClass(classData: InsertClass): Promise<Class>;
+  updateClass(id: number, classData: Partial<InsertClass>): Promise<Class | undefined>;
+  deleteClass(id: number): Promise<boolean>;
   
   // Student methods
   getStudents(): Promise<Student[]>;
@@ -27,6 +29,8 @@ export interface IStorage {
   getStudent(id: number): Promise<Student | undefined>;
   getStudentByRollNo(rollNo: string): Promise<Student | undefined>;
   createStudent(student: InsertStudent): Promise<Student>;
+  updateStudent(id: number, studentData: Partial<InsertStudent>): Promise<Student | undefined>;
+  deleteStudent(id: number): Promise<boolean>;
   
   // Attendance methods
   getAttendanceByDate(classId: number, date: string): Promise<StudentWithAttendance[]>;
@@ -121,6 +125,51 @@ export class DatabaseStorage implements IStorage {
     return newClass;
   }
 
+  async updateClass(id: number, classData: Partial<InsertClass>): Promise<Class | undefined> {
+    const [updatedClass] = await db
+      .update(classes)
+      .set(classData)
+      .where(eq(classes.id, id))
+      .returning();
+    return updatedClass || undefined;
+  }
+
+  async deleteClass(id: number): Promise<boolean> {
+    try {
+      // Check if there are students in this class first
+      const [{ count: studentCount }] = await db
+        .select({ count: count() })
+        .from(students)
+        .where(eq(students.classId, id));
+      
+      if (studentCount > 0) {
+        // Cannot delete class with students
+        return false;
+      }
+      
+      // Check if there are attendance records for this class
+      const [{ count: attendanceCount }] = await db
+        .select({ count: count() })
+        .from(attendance)
+        .where(eq(attendance.classId, id));
+      
+      if (attendanceCount > 0) {
+        // Cannot delete class with attendance records
+        return false;
+      }
+      
+      // Delete the class if no dependencies
+      await db
+        .delete(classes)
+        .where(eq(classes.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      return false;
+    }
+  }
+
   // Student methods implementation
   async getStudents(): Promise<Student[]> {
     return await db.select().from(students);
@@ -155,6 +204,40 @@ export class DatabaseStorage implements IStorage {
       .values(student)
       .returning();
     return newStudent;
+  }
+
+  async updateStudent(id: number, studentData: Partial<InsertStudent>): Promise<Student | undefined> {
+    const [updatedStudent] = await db
+      .update(students)
+      .set(studentData)
+      .where(eq(students.id, id))
+      .returning();
+    return updatedStudent || undefined;
+  }
+
+  async deleteStudent(id: number): Promise<boolean> {
+    try {
+      // Check if there are attendance records for this student
+      const [{ count: attendanceCount }] = await db
+        .select({ count: count() })
+        .from(attendance)
+        .where(eq(attendance.studentId, id));
+      
+      if (attendanceCount > 0) {
+        // Cannot delete student with attendance records
+        return false;
+      }
+      
+      // Delete the student if no dependencies
+      await db
+        .delete(students)
+        .where(eq(students.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      return false;
+    }
   }
 
   // Attendance methods implementation

@@ -24,6 +24,7 @@ export const classes = pgTable("classes", {
   name: text("name").notNull(),
   department: text("department").notNull(),
   semester: integer("semester").notNull(),
+  subject: text("subject"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -31,6 +32,7 @@ export const insertClassSchema = createInsertSchema(classes).pick({
   name: true,
   department: true,
   semester: true,
+  subject: true,
 });
 
 export type InsertClass = z.infer<typeof insertClassSchema>;
