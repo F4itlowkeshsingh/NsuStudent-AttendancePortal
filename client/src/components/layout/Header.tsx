@@ -1,22 +1,26 @@
 import { User, Bell, LogOut } from 'lucide-react';
+import nsuLogo from '@/assets/nsu-logo.svg';
 
-const Header = () => {
+interface HeaderProps {
+  onLogout?: () => void;
+}
+
+const Header = ({ onLogout }: HeaderProps) => {
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
   return (
     <header className="bg-primary text-white shadow-md">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <svg 
-            className="h-10 w-10 text-white" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          >
-            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
-          </svg>
+        <div className="flex items-center space-x-3">
+          <img 
+            src={nsuLogo} 
+            alt="Netaji Subhash University Logo" 
+            className="h-12 w-12"
+          />
           <div>
             <h1 className="text-xl font-semibold">Netaji Subhash University</h1>
             <p className="text-sm opacity-90">Attendance Management System</p>
@@ -28,10 +32,17 @@ const Header = () => {
             <User className="h-4 w-4" />
             <span>Admin User</span>
           </div>
-          <button className="p-2 rounded-full hover:bg-blue-700 transition-all">
+          <button 
+            className="p-2 rounded-full hover:bg-blue-700 transition-all"
+            title="Notifications"
+          >
             <Bell className="h-5 w-5" />
           </button>
-          <button className="p-2 rounded-full hover:bg-blue-700 transition-all">
+          <button 
+            className="p-2 rounded-full hover:bg-blue-700 transition-all"
+            onClick={handleLogout}
+            title="Logout"
+          >
             <LogOut className="h-5 w-5" />
           </button>
         </div>
