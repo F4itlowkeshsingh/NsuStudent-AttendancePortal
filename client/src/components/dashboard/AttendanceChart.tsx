@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AttendanceSummary } from '@shared/schema';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface AttendanceChartProps {
   classId?: number;
@@ -11,9 +13,19 @@ const AttendanceChart: React.FC<AttendanceChartProps> = ({ classId }) => {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [animatedPercentage, setAnimatedPercentage] = useState(0);
   
-  const { data: summary, isLoading } = useQuery<AttendanceSummary>({
-    queryKey: classId ? ['/api/attendance/summary', classId, today] : ['/api/attendance/summary', today],
-    enabled: !!today,
+  const { data: summary, isLoading, isError } = useQuery<AttendanceSummary>({
+    queryKey: ['/api/attendance/summary', classId, today],
+    queryFn: async () => {
+      if (!classId) {
+        throw new Error("Class ID is required");
+      }
+      return fetch(`/api/attendance/summary?classId=${classId}&date=${today}`).then(r => {
+        if (!r.ok) throw new Error("Failed to fetch attendance data");
+        return r.json();
+      });
+    },
+    enabled: !!classId,
+    retry: 1,
   });
   
   // Fallback data if no summary or loading
@@ -24,7 +36,7 @@ const AttendanceChart: React.FC<AttendanceChartProps> = ({ classId }) => {
   
   // Animate the percentage for better visibility
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isError && summary) {
       // Reset to 0 first for animation
       setAnimatedPercentage(0);
       
@@ -45,7 +57,7 @@ const AttendanceChart: React.FC<AttendanceChartProps> = ({ classId }) => {
       
       return () => clearTimeout(timer);
     }
-  }, [percentage, isLoading]);
+  }, [percentage, isLoading, isError, summary]);
   
   // Calculate the clip-path angle for the pie chart
   // For a percentage, we need to convert it to degrees out of 360
@@ -82,6 +94,37 @@ const AttendanceChart: React.FC<AttendanceChartProps> = ({ classId }) => {
   };
   
   const chartColor = getColor(percentage);
+  
+  // If no class ID is selected, show a message
+  if (!classId) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Alert variant="warning" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No class selected</AlertTitle>
+          <AlertDescription>
+            Please select a class to view attendance data
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  
+  // If there's an error fetching the data
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading attendance data</AlertTitle>
+          <AlertDescription>
+            There was a problem loading the attendance data for this class.
+            Try taking attendance first.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   
   return (
     <div className="px-6 py-4">
