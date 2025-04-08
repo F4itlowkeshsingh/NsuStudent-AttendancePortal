@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Student, Class } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, UserPlus } from 'lucide-react';
+import { Search, UserPlus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AddStudentModal from '@/components/modals/AddStudentModal';
+import { EditStudentModal } from '@/components/modals/EditStudentModal';
 import {
   Table,
   TableBody,
@@ -15,11 +16,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 const Students = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const { data: classes, isLoading: loadingClasses } = useQuery<Class[]>({
     queryKey: ['/api/classes'],
@@ -121,6 +130,50 @@ const Students = () => {
                       <TableCell>{student.email || '-'}</TableCell>
                       <TableCell>{student.mobile || '-'}</TableCell>
                       <TableCell>{studentClass?.name || '-'}</TableCell>
+                      <TableCell className="text-right w-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedStudent(student);
+                                setIsEditStudentModalOpen(true);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete ${student.name}?`)) {
+                                  fetch(`/api/students/${student.id}`, { method: 'DELETE' })
+                                    .then(response => {
+                                      if (response.ok) {
+                                        // Refresh student list
+                                        window.location.reload();
+                                      } else {
+                                        alert('Cannot delete student with attendance records');
+                                      }
+                                    })
+                                    .catch(error => {
+                                      console.error('Error deleting student:', error);
+                                      alert('Failed to delete student');
+                                    });
+                                }
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -139,6 +192,19 @@ const Students = () => {
         isOpen={isAddStudentModalOpen} 
         onClose={() => setIsAddStudentModalOpen(false)} 
       />
+      
+      {/* Edit Modal */}
+      {selectedStudent && classes && (
+        <EditStudentModal
+          isOpen={isEditStudentModalOpen}
+          onClose={() => {
+            setIsEditStudentModalOpen(false);
+            setSelectedStudent(null);
+          }}
+          student={selectedStudent}
+          classOptions={classes}
+        />
+      )}
     </div>
   );
 };

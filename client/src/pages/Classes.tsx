@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, CalendarCheck, FileSpreadsheet, Pencil, Trash } from 'lucide-react';
 import AddClassModal from '@/components/modals/AddClassModal';
 import TakeAttendanceModal from '@/components/modals/TakeAttendanceModal';
+import { EditClassModal } from '@/components/modals/EditClassModal';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -24,6 +25,7 @@ const Classes = () => {
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<ClassWithStudentCount | null>(null);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [isEditClassModalOpen, setIsEditClassModalOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,6 +42,11 @@ const Classes = () => {
   const handleTakeAttendance = (cls: ClassWithStudentCount) => {
     setSelectedClass(cls);
     setIsAttendanceModalOpen(true);
+  };
+  
+  const handleEditClass = (cls: ClassWithStudentCount) => {
+    setSelectedClass(cls);
+    setIsEditClassModalOpen(true);
   };
 
   const handleExportData = async (cls: ClassWithStudentCount) => {
@@ -142,7 +149,7 @@ const Classes = () => {
                               variant="ghost" 
                               size="icon"
                               className="text-neutral-800 hover:bg-neutral-100"
-                              onClick={() => setSelectedClass(cls)}
+                              onClick={() => handleEditClass(cls)}
                             >
                               <Pencil className="h-5 w-5" />
                             </Button>
@@ -237,6 +244,17 @@ const Classes = () => {
         <TakeAttendanceModal
           isOpen={isAttendanceModalOpen}
           onClose={() => setIsAttendanceModalOpen(false)}
+          classData={selectedClass}
+        />
+      )}
+      
+      {selectedClass && (
+        <EditClassModal
+          isOpen={isEditClassModalOpen}
+          onClose={() => {
+            setIsEditClassModalOpen(false);
+            setSelectedClass(null);
+          }}
           classData={selectedClass}
         />
       )}
