@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, timestamp, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User table (keeping the existing one)
 export const users = pgTable("users", {
@@ -107,3 +108,28 @@ export type DashboardStats = {
   todayAttendance: number;
   reportsGenerated: number;
 };
+
+// Define relations between tables
+export const classesRelations = relations(classes, ({ many }) => ({
+  students: many(students),
+  attendances: many(attendance)
+}));
+
+export const studentsRelations = relations(students, ({ one, many }) => ({
+  class: one(classes, {
+    fields: [students.classId],
+    references: [classes.id]
+  }),
+  attendances: many(attendance)
+}));
+
+export const attendanceRelations = relations(attendance, ({ one }) => ({
+  student: one(students, {
+    fields: [attendance.studentId],
+    references: [students.id]
+  }),
+  class: one(classes, {
+    fields: [attendance.classId],
+    references: [classes.id]
+  })
+}));
