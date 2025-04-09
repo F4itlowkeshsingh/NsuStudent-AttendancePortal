@@ -32,12 +32,19 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
   const today = format(new Date(), "yyyy-MM-dd");
   const [date, setDate] = useState(today);
   const [timeSlot, setTimeSlot] = useState("Morning (9:00 AM - 12:00 PM)");
-  const [subject, setSubject] = useState("Data Structures");
+  const [className, setClassName] = useState("Data Structures");
   const [sendEmails, setSendEmails] = useState(true);
   
   const { data: studentsWithAttendance, isLoading } = useQuery<StudentWithAttendance[]>({
     queryKey: ['/api/attendance', classData.id, date],
     queryFn: () => fetch(`/api/attendance?classId=${classData.id}&date=${date}`).then(r => r.json()),
+    enabled: isOpen,
+  });
+  
+  // Fetch all classes for the dropdown
+  const { data: allClasses } = useQuery<ClassWithStudentCount[]>({
+    queryKey: ['/api/classes'],
+    queryFn: () => fetch('/api/classes').then(r => r.json()),
     enabled: isOpen,
   });
   
@@ -53,7 +60,12 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
       });
       setAttendanceState(initialState);
     }
-  }, [studentsWithAttendance]);
+    
+    // Set the class name when the modal opens
+    if (isOpen && classData) {
+      setClassName(classData.name);
+    }
+  }, [studentsWithAttendance, isOpen, classData]);
   
   // Calculate summary
   const presentCount = Object.values(attendanceState).filter(Boolean).length;
@@ -119,7 +131,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
     saveAttendanceMutation.mutate({
       classId: classData.id,
       date,
-      subject,
+      subject: className, // using className value but keeping API param as subject for compatibility
       timeSlot,
       attendanceData,
       sendEmails
@@ -179,17 +191,22 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             <div>
               <Label className="flex items-center mb-1.5 text-xs font-medium text-neutral-500">
                 <Book className="h-3.5 w-3.5 mr-1.5" />
-                Subject
+                Class
               </Label>
-              <Select value={subject} onValueChange={setSubject}>
+              <Select value={className} onValueChange={setClassName}>
                 <SelectTrigger className="focus-visible:ring-blue-500">
-                  <SelectValue placeholder="Select subject" />
+                  <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Data Structures">Data Structures</SelectItem>
-                  <SelectItem value="Computer Networks">Computer Networks</SelectItem>
-                  <SelectItem value="Operating Systems">Operating Systems</SelectItem>
-                  <SelectItem value="Database Management">Database Management</SelectItem>
+                  {allClasses ? (
+                    allClasses.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.name}>
+                        {cls.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value={classData.name}>{classData.name}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
