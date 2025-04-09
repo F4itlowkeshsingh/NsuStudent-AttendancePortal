@@ -28,72 +28,84 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const today = format(new Date(), "yyyy-MM-dd");
   const [date, setDate] = useState(today);
   const [timeSlot, setTimeSlot] = useState("Morning (9:00 AM - 12:00 PM)");
   const [className, setClassName] = useState("Data Structures");
   const [sendEmails, setSendEmails] = useState(true);
-  
-  const { data: studentsWithAttendance, isLoading } = useQuery<StudentWithAttendance[]>({
-    queryKey: ['/api/attendance', classData.id, date],
-    queryFn: () => fetch(`/api/attendance?classId=${classData.id}&date=${date}`).then(r => r.json()),
-    enabled: isOpen,
-  });
-  
-  // Fetch all classes for the dropdown
+
+  // Get all classes for the dropdown
   const { data: allClasses } = useQuery<ClassWithStudentCount[]>({
     queryKey: ['/api/classes'],
     queryFn: () => fetch('/api/classes').then(r => r.json()),
     enabled: isOpen,
   });
-  
+
+  // Get students for selected class
+  const { data: classStudents, isLoading } = useQuery<StudentWithAttendance[]>({
+    queryKey: ['/api/students', selectedClassId],
+    queryFn: () => fetch(`/api/students?classId=${selectedClassId}`).then(r => r.json()),
+    enabled: !!selectedClassId,
+  });
+
+  // Local state to track selected class
+  const [selectedClassId, setSelectedClassId] = useState<number>(classData.id);
+
   // Local state to track attendance
   const [attendanceState, setAttendanceState] = useState<Record<number, boolean>>({});
-  
+
+  // Update selected class ID when class changes
+  useEffect(() => {
+    const selectedClass = allClasses?.find(c => c.name === className);
+    if (selectedClass) {
+      setSelectedClassId(selectedClass.id);
+    }
+  }, [className, allClasses]);
+
   // Initialize attendance state when data is loaded
   useEffect(() => {
-    if (studentsWithAttendance) {
+    if (classStudents) {
       const initialState: Record<number, boolean> = {};
-      studentsWithAttendance.forEach(student => {
+      classStudents.forEach(student => {
         initialState[student.id] = student.isPresent ?? true; // Default to present
       });
       setAttendanceState(initialState);
     }
-    
+
     // Set the class name when the modal opens
     if (isOpen && classData) {
       setClassName(classData.name);
     }
-  }, [studentsWithAttendance, isOpen, classData]);
-  
+  }, [classStudents, isOpen, classData]);
+
   // Calculate summary
   const presentCount = Object.values(attendanceState).filter(Boolean).length;
   const totalCount = Object.keys(attendanceState).length;
   const absentCount = totalCount - presentCount;
   const attendancePercentage = calculateAttendancePercentage(presentCount, totalCount);
-  
+
   // Mark all present/absent
   const markAllPresent = () => {
-    if (!studentsWithAttendance) return;
-    
+    if (!classStudents) return;
+
     const newState: Record<number, boolean> = {};
-    studentsWithAttendance.forEach(student => {
+    classStudents.forEach(student => {
       newState[student.id] = true;
     });
     setAttendanceState(newState);
   };
-  
+
   const markAllAbsent = () => {
-    if (!studentsWithAttendance) return;
-    
+    if (!classStudents) return;
+
     const newState: Record<number, boolean> = {};
-    studentsWithAttendance.forEach(student => {
+    classStudents.forEach(student => {
       newState[student.id] = false;
     });
     setAttendanceState(newState);
   };
-  
+
   // Save attendance mutation
   const saveAttendanceMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -119,17 +131,17 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
       });
     }
   });
-  
+
   const handleSaveAttendance = () => {
-    if (!studentsWithAttendance) return;
-    
-    const attendanceData = studentsWithAttendance.map(student => ({
+    if (!classStudents) return;
+
+    const attendanceData = classStudents.map(student => ({
       studentId: student.id,
       isPresent: attendanceState[student.id] ?? false
     }));
-    
+
     saveAttendanceMutation.mutate({
-      classId: classData.id,
+      classId: selectedClassId,
       date,
       subject: className, // using className value but keeping API param as subject for compatibility
       timeSlot,
@@ -137,14 +149,14 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
       sendEmails
     });
   };
-  
+
   const toggleAttendance = (studentId: number) => {
     setAttendanceState(prev => ({
       ...prev,
       [studentId]: !prev[studentId]
     }));
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
@@ -157,7 +169,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             Record attendance for {classData.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="p-4 border-b border-neutral-200 bg-gradient-to-b from-blue-50 to-white rounded-md mb-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -212,14 +224,14 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             </div>
           </div>
         </div>
-        
+
         <Card className="mb-2 border-dashed">
           <CardContent className="p-3 flex flex-wrap justify-between items-center">
             <div className="flex items-center">
               <Badge variant="outline" className="mr-2 bg-blue-50 border-blue-100 text-blue-700">
                 {totalCount} Students
               </Badge>
-              
+
               <div className="flex items-center gap-1">
                 <Badge variant="outline" className="bg-green-50 border-green-100 text-green-700">
                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -231,7 +243,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
                 </Badge>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 mt-2 md:mt-0">
               <Button 
                 variant="outline" 
@@ -254,14 +266,14 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             </div>
           </CardContent>
         </Card>
-        
+
         <div className="overflow-y-auto max-h-[50vh] border rounded-md">
           {isLoading ? (
             <div className="p-8 text-center text-neutral-500 flex flex-col items-center">
               <Loader2 className="h-8 w-8 animate-spin mb-2 text-blue-500" />
               <p>Loading students...</p>
             </div>
-          ) : studentsWithAttendance && studentsWithAttendance.length > 0 ? (
+          ) : classStudents && classStudents.length > 0 ? (
             <table className="w-full">
               <thead className="sticky top-0 bg-white">
                 <tr className="bg-neutral-50 text-left">
@@ -271,7 +283,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {studentsWithAttendance.map((student) => (
+                {classStudents.map((student) => (
                   <tr 
                     key={student.id} 
                     className={`border-t border-neutral-200 hover:bg-neutral-50 ${
@@ -316,7 +328,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="border-t border-neutral-200 pt-3 px-4 flex items-center gap-3">
           <div className="flex items-center space-x-2">
             <Switch 
