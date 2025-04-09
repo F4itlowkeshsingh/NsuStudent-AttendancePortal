@@ -32,20 +32,22 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
   const today = format(new Date(), "yyyy-MM-dd");
   const [date, setDate] = useState(today);
   const [timeSlot, setTimeSlot] = useState("Morning (9:00 AM - 12:00 PM)");
-  const [className, setClassName] = useState("Data Structures");
+  const [selectedClassId, setSelectedClassId] = useState<number>(classData.id);
+  const [className, setClassName] = useState(classData.name);
   const [sendEmails, setSendEmails] = useState(true);
-  
-  const { data: studentsWithAttendance, isLoading } = useQuery<StudentWithAttendance[]>({
-    queryKey: ['/api/attendance', classData.id, date],
-    queryFn: () => fetch(`/api/attendance?classId=${classData.id}&date=${date}`).then(r => r.json()),
-    enabled: isOpen,
-  });
   
   // Fetch all classes for the dropdown
   const { data: allClasses } = useQuery<ClassWithStudentCount[]>({
     queryKey: ['/api/classes'],
     queryFn: () => fetch('/api/classes').then(r => r.json()),
     enabled: isOpen,
+  });
+  
+  // Fetch students based on the selected class
+  const { data: studentsWithAttendance, isLoading } = useQuery<StudentWithAttendance[]>({
+    queryKey: ['/api/attendance', selectedClassId, date],
+    queryFn: () => fetch(`/api/attendance?classId=${selectedClassId}&date=${date}`).then(r => r.json()),
+    enabled: isOpen && !!selectedClassId,
   });
   
   // Local state to track attendance
@@ -129,7 +131,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
     }));
     
     saveAttendanceMutation.mutate({
-      classId: classData.id,
+      classId: selectedClassId,
       date,
       subject: className, // using className value but keeping API param as subject for compatibility
       timeSlot,
@@ -154,7 +156,7 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
             Take Attendance
           </DialogTitle>
           <DialogDescription>
-            Record attendance for {classData.name}
+            Record attendance for {className}
           </DialogDescription>
         </DialogHeader>
         
@@ -193,7 +195,17 @@ const TakeAttendanceModal: React.FC<TakeAttendanceModalProps> = ({
                 <Book className="h-3.5 w-3.5 mr-1.5" />
                 Class
               </Label>
-              <Select value={className} onValueChange={setClassName}>
+              <Select 
+                value={className} 
+                onValueChange={(name) => {
+                  setClassName(name);
+                  // Find the class ID that corresponds to the selected class name
+                  const selectedClass = allClasses?.find(cls => cls.name === name);
+                  if (selectedClass) {
+                    setSelectedClassId(selectedClass.id);
+                  }
+                }}
+              >
                 <SelectTrigger className="focus-visible:ring-blue-500">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
