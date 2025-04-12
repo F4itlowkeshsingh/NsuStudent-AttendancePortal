@@ -59,16 +59,10 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = process.env.PORT || 5000;
-  const host = "0.0.0.0";
+  const port = 5000;
   
-  server.listen({
-    port,
-    host,
-    keepAliveTimeout: 65000, // Ensure keep-alive timeout is longer than browser
-    headersTimeout: 66000, // Ensure headers timeout is longer than keep-alive
-  }, () => {
-    log(`Server running at http://${host}:${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    log(`Server running at http://0.0.0.0:${port}`);
     log('Open the webview to see your application');
   });
 })();
