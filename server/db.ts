@@ -1,19 +1,17 @@
-
-import mongoose from 'mongoose';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import { log } from './vite';
 
-const connectionString = process.env.MONGODB_URL;
+// Initialize postgres client with environment variables
+const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error('MONGODB_URL environment variable is not set');
+  throw new Error('DATABASE_URL environment variable is not set');
 }
 
-export const connectDB = async () => {
-  try {
-    await mongoose.connect(connectionString);
-    log('MongoDB connection initialized', 'mongodb');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  }
-};
+// For query execution
+export const client = postgres(connectionString);
+log('Database connection initialized', 'postgres');
+
+// Initialize drizzle with the client
+export const db = drizzle(client);
