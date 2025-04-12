@@ -1,97 +1,105 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp, primaryKey } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { relations } from "drizzle-orm";
+import mongoose from 'mongoose';
+import { z } from 'zod';
 
-// User table (keeping the existing one)
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+// User Schema
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const User = mongoose.model('User', userSchema);
+
+// Class Schema
+const classSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  department: { type: String, required: true },
+  semester: { type: Number, required: true },
+  subject: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Class = mongoose.model('Class', classSchema);
+
+// Student Schema
+const studentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  rollNo: { type: String, required: true, unique: true },
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  registrationNo: String,
+  email: String,
+  mobile: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Student = mongoose.model('Student', studentSchema);
+
+// Attendance Schema
+const attendanceSchema = new mongoose.Schema({
+  studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  date: { type: Date, required: true },
+  isPresent: { type: Boolean, required: true },
+  subject: String,
+  timeSlot: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Attendance = mongoose.model('Attendance', attendanceSchema);
+
+// Zod Schemas for validation
+export const insertUserSchema = z.object({
+  username: z.string(),
+  password: z.string()
+});
+
+export const insertClassSchema = z.object({
+  name: z.string(),
+  department: z.string(),
+  semester: z.number(),
+  subject: z.string().optional()
+});
+
+export const insertStudentSchema = z.object({
+  name: z.string(),
+  rollNo: z.string(),
+  classId: z.string(),
+  registrationNo: z.string().optional(),
+  email: z.string().optional(),
+  mobile: z.string().optional()
+});
+
+export const insertAttendanceSchema = z.object({
+  studentId: z.string(),
+  classId: z.string(),
+  date: z.date(),
+  isPresent: z.boolean(),
+  subject: z.string().optional(),
+  timeSlot: z.string().optional()
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-// Classes table for different courses/batches
-export const classes = pgTable("classes", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  department: text("department").notNull(),
-  semester: integer("semester").notNull(),
-  subject: text("subject"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertClassSchema = createInsertSchema(classes).pick({
-  name: true,
-  department: true,
-  semester: true,
-  subject: true,
-});
-
 export type InsertClass = z.infer<typeof insertClassSchema>;
-export type Class = typeof classes.$inferSelect;
-
-// Students table
-export const students = pgTable("students", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  rollNo: text("roll_no").notNull().unique(),
-  classId: integer("class_id").notNull(),
-  registrationNo: text("registration_no"),
-  email: text("email"),
-  mobile: text("mobile"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertStudentSchema = createInsertSchema(students).pick({
-  name: true,
-  rollNo: true,
-  classId: true,
-  registrationNo: true,
-  email: true,
-  mobile: true,
-});
-
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
-export type Student = typeof students.$inferSelect;
-
-// Attendance records
-export const attendance = pgTable("attendance", {
-  id: serial("id").primaryKey(),
-  studentId: integer("student_id").notNull(),
-  classId: integer("class_id").notNull(),
-  date: date("date").notNull(),
-  isPresent: boolean("is_present").notNull(),
-  subject: text("subject"),
-  timeSlot: text("time_slot"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertAttendanceSchema = createInsertSchema(attendance).pick({
-  studentId: true,
-  classId: true,
-  date: true,
-  isPresent: true,
-  subject: true,
-  timeSlot: true,
-});
-
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
-export type Attendance = typeof attendance.$inferSelect;
 
-// Define some extended types for combined data
-export type StudentWithAttendance = Student & {
+// Extended types
+export type StudentWithAttendance = {
+  _id: string;
+  name: string;
+  rollNo: string;
+  classId: string;
+  registrationNo?: string;
+  email?: string;
+  mobile?: string;
   isPresent?: boolean;
 };
 
-export type ClassWithStudentCount = Class & {
+export type ClassWithStudentCount = {
+  _id: string;
+  name: string;
+  department: string;
+  semester: number;
+  subject?: string;
   studentCount: number;
   lastUpdated?: string;
 };
@@ -110,28 +118,3 @@ export type DashboardStats = {
   todayAttendance: number;
   reportsGenerated: number;
 };
-
-// Define relations between tables
-export const classesRelations = relations(classes, ({ many }) => ({
-  students: many(students),
-  attendances: many(attendance)
-}));
-
-export const studentsRelations = relations(students, ({ one, many }) => ({
-  class: one(classes, {
-    fields: [students.classId],
-    references: [classes.id]
-  }),
-  attendances: many(attendance)
-}));
-
-export const attendanceRelations = relations(attendance, ({ one }) => ({
-  student: one(students, {
-    fields: [attendance.studentId],
-    references: [students.id]
-  }),
-  class: one(classes, {
-    fields: [attendance.classId],
-    references: [classes.id]
-  })
-}));
