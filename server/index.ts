@@ -62,7 +62,12 @@ app.use((req, res, next) => {
   const port = process.env.PORT || 5000;
   const host = "0.0.0.0";
   
-  server.listen(port, host, () => {
+  server.listen({
+    port,
+    host,
+    keepAliveTimeout: 65000, // Ensure keep-alive timeout is longer than browser
+    headersTimeout: 66000, // Ensure headers timeout is longer than keep-alive
+  }, () => {
     log(`Server running at http://${host}:${port}`);
     log('Open the webview to see your application');
   });
