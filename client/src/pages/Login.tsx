@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,22 +15,24 @@ const Login = () => {
   const { toast } = useToast();
   const { login } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // For demonstration - simulate successful login
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Here we would normally validate credentials with the server
-      if (username === 'admin' && password === 'password') {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
         toast({
           title: 'Login Successful',
           description: 'Welcome to the Attendance Management System',
         });
-        
-        // Use the login function from auth context
         login();
       } else {
         toast({
@@ -38,7 +41,15 @@ const Login = () => {
           variant: 'destructive',
         });
       }
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: 'Login Failed',
+        description: 'An error occurred during login',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -99,9 +110,8 @@ const Login = () => {
           </form>
         </Card>
         
-        <div className="text-center mt-8 text-sm text-neutral-500">
-          <p>For demonstration, use: admin / password</p>
-          <p className="mt-6">© 2024 Netaji Subhash University. All rights reserved.</p>
+        <div className="text-center mt-6">
+          <p className="text-sm text-neutral-500">© 2024 Netaji Subhash University. All rights reserved.</p>
         </div>
       </div>
     </div>
